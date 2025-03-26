@@ -21,23 +21,23 @@ print("Variables:", iris.variables)  # 输出特征变量的信息
 # Combine features and target into one dataset for splitting
 data = np.column_stack((X, y))  # 将特征和标签合并为一个数据集，每行是一个样本
 
-# Split into training and testing sets (80% training, 20% testing)
+# Split into training and testing sets (70% training, 30% testing)
 def train_test_split_custom(data, test_size=0.3, random_state=42):
     np.random.seed(random_state)
     n_samples = len(data)
     test_size = int(n_samples * test_size)
-    indices = np.random.permutation(n_samples)
+    indices = np.random.permutation(n_samples)# 返回一个随机排列的范围
     test_indices = indices[:test_size]
     train_indices = indices[test_size:]
-    return data[train_indices], data[test_indices]
+    return data[train_indices], data[test_indices]# 随机划分测试集和训练集的模块定义
 
+#随机划分测试集和训练集的使用
 train_data, test_data = train_test_split_custom(data, test_size=0.3, random_state=42)
 
 # 进行标签编码（手动实现）
 def label_encode(data):
-    label_mapping = {label: idx for idx, label in enumerate(np.unique(data))}
-    return np.array([label_mapping[label] for label in data])
-
+    label_mapping = {label: idx for idx, label in enumerate(np.unique(data))} #创建了一个字典 label_mapping，将 data 中的每个唯一值映射到一个唯一的整数索引。
+    return np.array([label_mapping[label] for label in data]) #将数据集中每个标签（label）转换为对应的数值索引
 train_data[:, -1] = label_encode(train_data[:, -1])
 test_data[:, -1] = label_encode(test_data[:, -1])
 
@@ -53,7 +53,7 @@ def standardize(X):
         X = np.where(np.isnan(X) | np.isinf(X), nan_mean, X)
 
     # 计算均值和标准差
-    means = np.mean(X, axis=0)
+    means = np.mean(X, axis=0)# 均值
     stds = np.std(X, axis=0)
 
     stds = np.where(stds == 0, 1, stds)  # 如果标准差为0，设置为1，防止除以0
@@ -66,6 +66,7 @@ standardized_train_data = standardize(train_data[:, :-1])  # 使用训练集的�
 X_train = standardized_train_data['X']
 train_means = standardized_train_data['means']
 train_stds = standardized_train_data['stds']
+
 ### CART回归树类
 class CART_tree:
     def __init__(self):  # 构造函数，初始化相关参数
@@ -149,7 +150,8 @@ class CART_tree:
 
         if totalVar - self.varThres < self.varThres:  # 如果方差减少不足，停止分裂
             return None, np.mean(dataset[:, -1])
-
+        # 在决策树算法中，节点的划分标准通常基于数据的纯度度量，如信息增益、基尼指数或方差等。在回归树的构建过程中，方差是衡量数据纯度的重要指标。
+#如果当前节点的方差减少量不足以超过预设的阈值，则认为进一步划分不会显著提升模型性能，因此停止分裂，并将该节点的输出设为当前数据的均值。
         dataL, dataR = self.datasetSplit(dataset, self.bestFeature, self.bestThres)  # 分割数据集
         if len(dataL) < self.min_leaf_size or len(dataR) < self.min_leaf_size:  # 如果子集太小，停止分裂
             return None, np.mean(dataset[:, -1])
@@ -192,6 +194,7 @@ class CART_tree:
         return regTree
 
     def isTree(self, tree):  # 判断是否为树（叶子节点）
+# 叶子节点（Leaf Node）是指没有任何子节点的节点，即其度为零的节点。这些节点位于树的最底层，代表树的终端部分。
         return isinstance(tree, dict)
 
     def predict(self, tree, param):
@@ -296,6 +299,9 @@ def calculate_shap_values(rf, X_train):
     explainer = shap.KernelExplainer(predict_fn, X_train)  # SHAP的解释器
     shap_values = explainer.shap_values(X_train)  # 计算 SHAP 值
 
+# KernelExplainer 是 SHAP 提供的一个模型无关（model-agnostic）的解释器，适用于任何模型。 ￼
+# 它通过对特征进行扰动，观察模型输出的变化，来估计每个特征的 Shapley 值。 
+  
     return shap_values, explainer
 
 # 创建并训练随机森林模型
